@@ -293,13 +293,26 @@ mod tests {
         // Diagnostics:
         // 1. `app.remainder.span` partially moved due to this method call [E0382]
         // 2. you can `clone` the value and consume it, but this might not be your desired behavior: `.clone()` [E0382]
-        let _ = app.remainder.span.content("ab");
+        // let _ = app.remainder.span.content("ab");
 
-        // Diagnostics:
+        // Replacing the whole object works
+        // Seems wasteful if I just want to replace existing content.
+        app.remainder.span = Span::default().content("ab");
+
         // 1. borrow of partially moved value: `app`
         //    partial move occurs because `app.remainder.span` has type `ratatui::prelude::Span<'_>`, which does not implement the `Copy` trait [E0382]
-        app.handle_key_event(KeyCode::Char('a').into());
-        assert_eq!(app.miss_this_round, false);
+        let _ = app.handle_key_event(KeyCode::Char('a').into());
+        assert!(!app.miss_this_round);
+        assert!(app.remainder.span.content == "b");
+
+        let _ = app.handle_key_event(KeyCode::Char('c').into());
+        assert!(app.miss_this_round);
+        assert!(app.remainder.span.content == "b");
+
+        let _ = app.handle_key_event(KeyCode::Char('b').into());
+        assert!(app.wins == 0);
+        assert!(app.fails == 1);
+        assert!(app.remainder.span.content.len() == 2);
 
         // Can't get the value of content? Not even when I clone it?
         // let c = app.remainder.span.content.to_string().clone();
